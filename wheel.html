@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CYBER ARENA // Spin the Wheel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#03060a;--g:#00ff9c;--t:#d6fff0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font-family:"Courier New",monospace;min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column;align-items:center}
+#rain{position:fixed;inset:0;z-index:0;opacity:.35}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+h1{position:relative;z-index:2;margin:18px 12px 0;font-size:clamp(22px,5vw,44px);letter-spacing:.2em;color:var(--g);text-shadow:0 0 12px var(--g),0 0 40px #00ff9c88;animation:fl 4s infinite;text-align:center}
+@keyframes fl{0%,92%,100%{opacity:1}94%{opacity:.5}96%{opacity:1}98%{opacity:.6}}
+.sub{position:relative;z-index:2;opacity:.7;font-size:13px;margin:6px 0 10px;text-align:center}
+#stage{position:relative;z-index:2;width:min(92vw,600px);aspect-ratio:1;margin:8px 0}
+canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9c66)}
+#ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:38px solid #fff;filter:drop-shadow(0 0 10px #fff);z-index:4}
+#ptr.tick{animation:tk .08s}
+@keyframes tk{50%{transform:translateX(-50%) rotate(-14deg)}}
+#hub{position:absolute;left:50%;top:50%;width:22%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;border:3px solid var(--g);background:radial-gradient(#0a1a14,#000);color:var(--g);font:bold clamp(12px,3vw,20px) "Courier New",monospace;letter-spacing:.1em;cursor:pointer;box-shadow:0 0 25px var(--g),inset 0 0 20px #00ff9c55;z-index:3;transition:.3s ease}
+#hub:hover{transform:translate(-50%,-50%) scale(1.08);background:var(--g);color:#000}
+#hub:disabled{opacity:.5;cursor:default;transform:translate(-50%,-50%)}
+#card{position:absolute;inset:3%;border-radius:50%;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14%;gap:8px;opacity:0;transition:opacity .9s ease}
+#card.on{opacity:1}
+#card h2{margin:0;font-size:clamp(16px,4.2vw,30px);color:#000;letter-spacing:.08em;text-shadow:0 0 1px #fff}
+#card p{margin:0;font-size:clamp(10px,2.3vw,14px);color:#000;font-weight:bold;max-width:80%}
+#qr{background:#fff;padding:6px;border-radius:8px;display:flex}
+#qr img,#qr canvas{width:clamp(80px,22vw,130px)!important;height:clamp(80px,22vw,130px)!important}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btns a,.btns button{font:bold clamp(10px,2.4vw,13px) "Courier New",monospace;padding:7px 12px;border:2px solid #000;background:#000;color:var(--g);border-radius:20px;cursor:pointer;text-decoration:none;letter-spacing:.1em}
+.btns a:hover,.btns button:hover{background:#fff;color:#000}
+</style></head><body>
+<canvas id="rain"></canvas>
+<h1>&gt;_ CYBER ARENA</h1>
+<div class="sub">[ spin the wheel • get your challenge ]</div>
+<div id="stage">
+  <div id="ptr"></div>
+  <canvas id="w"></canvas>
+  <button id="hub">SPIN</button>
+  <div id="card"><h2 id="ct"></h2><p id="cd"></p><div id="qr"></div>
+    <div class="btns"><a id="cl" target="_blank" rel="noopener">▶ PLAY</a><button id="again">SPIN AGAIN</button></div></div>
+</div>
+<script>
+// ====== EDIT ME: put your real game links here ======
+const GAMES=[
+ {name:"PHISHING HUNTER",desc:"Spot the spam, catch the fake links, build strong passwords.",url:"https://example.com/phishing",color:"#00ff9c"},
+ {name:"CAESAR CRACKER",desc:"Decrypt the shifted message before time runs out.",url:"https://example.com/caesar",color:"#00cfff"},
+ {name:"CYBER MEMORY MATCH",desc:"Flip cards, match security icons, beat the clock.",url:"https://example.com/memory",color:"#ff2bd6"},
+ {name:"TYPO SPOTTER",desc:"Find the fake domain hiding one wrong letter.",url:"https://example.com/typo",color:"#ffe600"},
+ {name:"HASH BREAKER",desc:"Match each hash to the password it came from.",url:"https://example.com/hash",color:"#ff6b1a"},
+ {name:"TERMINAL RUSH",desc:"Type the right commands fast to breach the mock server.",url:"https://example.com/terminal",color:"#a86bff"}
+];
+const cv=document.getElementById("w"),cx=cv.getContext("2d"),N=GAMES.length,STEP=Math.PI*2/N;
+let S=600,rot=0,spinning=false,win=-1,exp=0,lastTick=-1;
+function size(){const d=devicePixelRatio||1;S=cv.clientWidth;cv.width=cv.height=S*d;cx.setTransform(d,0,0,d,0,0);draw()}
+function slice(a0,a1,col,dim){const R=S/2-10;cx.beginPath();cx.moveTo(S/2,S/2);cx.arc(S/2,S/2,R,a0,a1);cx.closePath();
+ cx.fillStyle=col;cx.globalAlpha=dim?.25:.9;cx.fill();cx.globalAlpha=1;cx.strokeStyle="#000";cx.lineWidth=3;cx.stroke()}
+function draw(){cx.clearRect(0,0,S,S);const R=S/2-10;
+ GAMES.forEach((g,i)=>{if(i===win&&exp>0)return;slice(rot+i*STEP,rot+(i+1)*STEP,g.color,win>=0);
+  if(win<0||i!==win){cx.save();cx.translate(S/2,S/2);cx.rotate(rot+(i+.5)*STEP);cx.textAlign="right";cx.fillStyle="#000";
+  cx.globalAlpha=win>=0?.3:1;cx.font="bold "+Math.max(10,S/34)+"px Courier New";cx.fillText(g.name,R-16,5);cx.restore()}});
+ if(win>=0&&exp>0){const a0=rot+win*STEP,a1=a0+STEP,c=(a0+a1)/2,lo=a0+(c-Math.PI-a0)*exp,hi=a1+(c+Math.PI-a1)*exp;slice(lo,hi,GAMES[win].color,false)}
+ cx.beginPath();cx.arc(S/2,S/2,R,0,7);cx.strokeStyle="#fff";cx.lineWidth=4;cx.stroke();
+ for(let i=0;i<N*3;i++){const a=rot+i*STEP/3;cx.beginPath();cx.arc(S/2+Math.cos(a)*(R+2),S/2+Math.sin(a)*(R+2),3,0,7);cx.fillStyle=i%3?"#0f8":"#fff";cx.fill()}}
+function idxAt(r){let a=(-Math.PI/2-r)%(Math.PI*2);if(a<0)a+=Math.PI*2;return Math.floor(a/STEP)%N}
+const hub=document.getElementById("hub"),card=document.getElementById("card"),ptr=document.getElementById("ptr");
+function spin(){if(spinning)return;spinning=true;hub.disabled=true;win=-1;exp=0;card.classList.remove("on");card.style.display="none";
+ const t=Math.floor(Math.random()*N),j=.15+Math.random()*.7,k=6+Math.floor(Math.random()*3);
+ const from=rot,to=(()=>{const tg=-Math.PI/2-(t+j)*STEP,T=Math.PI*2;return tg+T*Math.floor((rot-T*k-tg)/T)})(),dur=6500,t0=performance.now();
+
+ (function f(now){const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,5);rot=from+(to-from)*e;
+  const ix=Math.floor(((-Math.PI/2-rot)/STEP));if(ix!==lastTick){lastTick=ix;ptr.classList.remove("tick");void ptr.offsetWidth;ptr.classList.add("tick")}
+  draw();if(p<1)requestAnimationFrame(f);else done(idxAt(rot))})(t0)}
+function done(i){win=i;const g=GAMES[i];const t0=performance.now();
+ (function f(now){const p=Math.min(1,(now-t0)/1100);exp=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;draw();if(p<1)requestAnimationFrame(f);else show(g)})(t0)}
+function show(g){document.getElementById("ct").textContent=g.name;document.getElementById("cd").textContent=g.desc;
+ const q=document.getElementById("qr");q.innerHTML="";try{new QRCode(q,{text:g.url,width:130,height:130})}catch(e){q.style.display="none"}
+ document.getElementById("cl").href=g.url;card.style.display="flex";requestAnimationFrame(()=>card.classList.add("on"));
+ hub.style.display="none"}
+document.getElementById("again").onclick=()=>{hub.style.display="";win=-1;exp=0;card.classList.remove("on");card.style.display="none";draw();spinning=false;hub.disabled=false};
+hub.onclick=spin;addEventListener("resize",size);size();
+// matrix rain
+const rc=document.getElementById("rain"),rx=rc.getContext("2d");let cols,drops;
+function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
+rs();addEventListener("resize",rs);
+setInterval(()=>{rx.fillStyle="rgba(3,6,10,.12)";rx.fillRect(0,0,rc.width,rc.height);rx.fillStyle="#00ff9c";rx.font="14px monospace";
+ drops.forEach((d,i)=>{rx.fillText(Math.random()<.5?"0":"1",i*16,d*16);drops[i]=d*16>rc.height&&Math.random()>.97?0:d+1})},60);
+</script></body></html>
