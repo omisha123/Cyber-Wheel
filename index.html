@@ -10,10 +10,13 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--t);font-family:"Courier New",monospace;min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column;align-items:center}
 #rain{position:fixed;inset:0;z-index:0;opacity:.35}
 body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#00140d;border-bottom:2px solid var(--g);z-index:100;position:relative;}
+.h-logo{display:flex;align-items:center;gap:15px;}
+.h-logo img{height:40px;border-radius:50%;}
 h1{position:relative;z-index:2;margin:18px 12px 0;font-size:clamp(22px,5vw,44px);letter-spacing:.2em;color:var(--g);text-shadow:0 0 12px var(--g),0 0 40px #00ff9c88;animation:fl 4s infinite;text-align:center}
 @keyframes fl{0%,92%,100%{opacity:1}94%{opacity:.5}96%{opacity:1}98%{opacity:.6}}
 .sub{position:relative;z-index:2;opacity:.7;font-size:13px;margin:6px 0 10px;text-align:center}
-#stage{position:relative;z-index:2;width:min(92vw,600px);aspect-ratio:1;margin:8px 0}
+#stage{position:relative;z-index:2;width:min(92vw,500px);aspect-ratio:1;margin:8px 0}
 canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9c66)}
 #ptr{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:38px solid #fff;filter:drop-shadow(0 0 10px #fff);z-index:4}
 #ptr.tick{animation:tk .08s}
@@ -30,8 +33,29 @@ canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9
 .btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .btns a,.btns button{font:bold clamp(10px,2.4vw,13px) "Courier New",monospace;padding:7px 12px;border:2px solid #000;background:#000;color:var(--g);border-radius:20px;cursor:pointer;text-decoration:none;letter-spacing:.1em}
 .btns a:hover,.btns button:hover{background:#fff;color:#000}
+#lbBtn{font:bold 13px "Courier New",monospace;letter-spacing:.1em;padding:8px 14px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:20px;cursor:pointer}
+#lbBtn:hover,.lbBtns button:hover{background:var(--g);color:#000}
+#lb{position:fixed;inset:0;z-index:9;background:#000000cc;display:none;align-items:center;justify-content:center}
+#lb.on{display:flex}
+.lbBox{width:min(94vw,760px);max-height:90vh;overflow:auto;background:#03060a;border:2px solid var(--g);box-shadow:0 0 30px #00ff9c66;padding:16px 20px}
+.lbBox h2{margin:0;color:var(--g);letter-spacing:.15em;text-align:center}
+.lbNote{text-align:center;opacity:.6;font-size:13px;margin:4px 0 10px}
+.lbBox table{width:100%;border-collapse:collapse;font-size:clamp(13px,2.2vw,17px)}
+.lbBox th{color:var(--g);text-align:left;border-bottom:1px solid var(--g);padding:6px 4px}
+.lbBox td{padding:6px 4px;border-bottom:1px solid #00ff9c22}
+.lbBox td.s{color:#ffe600;font-weight:bold;text-align:right}.lbBox th.s{text-align:right}
+.lbBtns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.lbBtns button{font:bold 14px "Courier New",monospace;padding:8px 16px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:20px;cursor:pointer}
 </style></head><body>
+<header>
+  <div class="h-logo">
+    <img src="logo.jpeg" alt="Logo">
+    <strong style="color:var(--g);letter-spacing:2px;">CYBER ARENA</strong>
+  </div>
+  <button id="lbBtn">LEADERBOARD</button>
+</header>
 <canvas id="rain"></canvas>
+<div id="lb"><div class="lbBox"><h2>&gt;_ LEADERBOARD</h2><div class="lbNote">best score per player, all games</div><div id="lbList"></div><div class="lbBtns"><button id="lbClose">CLOSE</button><button id="lbReset">RESET</button></div></div></div>
 <h1>&gt;_ CYBER ARENA</h1>
 <div class="sub">[ spin the wheel • get your challenge ]</div>
 <div id="stage">
@@ -39,17 +63,19 @@ canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9
   <canvas id="w"></canvas>
   <button id="hub">SPIN</button>
   <div id="card"><h2 id="ct"></h2><p id="cd"></p><div id="qr"></div>
-    <div class="btns"><a id="cl" target="_blank" rel="noopener">▶ PLAY</a><button id="again">SPIN AGAIN</button></div></div>
+    <div class="btns"><a id="cl">▶ PLAY</a><button id="again">SPIN AGAIN</button></div></div>
 </div>
+
+<script src="arena.js"></script>
 <script>
 // ====== EDIT ME: put your real game links here ======
 const GAMES=[
- {name:"PHISHING HUNTER",desc:"Spot the spam, catch the fake links, build strong passwords.",url:"https://example.com/phishing",color:"#00ff9c"},
- {name:"CAESAR CRACKER",desc:"Decrypt the shifted message before time runs out.",url:"https://example.com/caesar",color:"#00cfff"},
- {name:"CYBER MEMORY MATCH",desc:"Flip cards, match security icons, beat the clock.",url:"https://example.com/memory",color:"#ff2bd6"},
- {name:"TYPO SPOTTER",desc:"Find the fake domain hiding one wrong letter.",url:"https://example.com/typo",color:"#ffe600"},
- {name:"HASH BREAKER",desc:"Match each hash to the password it came from.",url:"https://example.com/hash",color:"#ff6b1a"},
- {name:"TERMINAL RUSH",desc:"Type the right commands fast to breach the mock server.",url:"https://example.com/terminal",color:"#a86bff"}
+ {name:"CAESAR CRACKER",desc:"Decrypt the scrambled message before time runs out.",url:"games/caesar.html",color:"#00cfff"},
+ {name:"DOMAIN DETECTIVE",desc:"Spot the fake website address, 5 rounds, 60 seconds.",url:"games/domain.html",color:"#ffe600"},
+ {name:"CYBER MEMORY MATCH",desc:"Flip cards, match security icons, beat the clock.",url:"games/memory.html",color:"#ff2bd6"},
+ {name:"PACKET NINJA",desc:"Slice the threats, let the safe traffic pass.",url:"games/packet.html",color:"#ff3860"},
+ {name:"TWO TRUTHS ONE PHISH",desc:"Two messages are real. One is a phishing attempt.",url:"games/phish.html",color:"#00ff9c"},
+ {name:"PASSWORD DUEL",desc:"Build passwords that survive three cracking attacks.",url:"games/password.html",color:"#ff6b1a"}
 ];
 const cv=document.getElementById("w"),cx=cv.getContext("2d"),N=GAMES.length,STEP=Math.PI*2/N;
 let S=600,rot=0,spinning=false,win=-1,exp=0,lastTick=-1;
@@ -80,6 +106,22 @@ function show(g){document.getElementById("ct").textContent=g.name;document.getEl
  hub.style.display="none"}
 document.getElementById("again").onclick=()=>{hub.style.display="";win=-1;exp=0;card.classList.remove("on");card.style.display="none";draw();spinning=false;hub.disabled=false};
 hub.onclick=spin;addEventListener("resize",size);size();
+// leaderboard
+const lbEl=document.getElementById("lb");
+function showLB(){const t=Arena.top(10);
+ document.getElementById("lbList").innerHTML=t.length?"<table><tr><th>#</th><th>NAME</th><th>BRANCH</th><th>GAME</th><th class='s'>SCORE</th></tr>"+t.map((e,k)=>"<tr><td>"+(k+1)+"</td><td>"+esc(e.n)+"</td><td>"+esc(e.b)+"</td><td>"+Arena.gameName(e.g)+"</td><td class='s'>"+e.s+"</td></tr>").join("")+"</table>":"<p style='text-align:center;opacity:.7'>No scores yet. Spin the wheel and play!</p>";
+ lbEl.classList.add("on")}
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+document.getElementById("lbBtn").onclick=showLB;
+document.getElementById("lbClose").onclick=()=>lbEl.classList.remove("on");
+document.getElementById("lbReset").onclick=()=>{
+  const val = prompt("Type RESET to clear the whole leaderboard");
+  if(val && val.trim().toUpperCase() === "RESET"){
+    Arena.clear();
+    showLB();
+  }
+};
+addEventListener("keydown",e=>{if(e.key==="l"||e.key==="L")lbEl.classList.contains("on")?lbEl.classList.remove("on"):showLB();else if(e.key==="Escape")lbEl.classList.remove("on")});
 // matrix rain
 const rc=document.getElementById("rain"),rx=rc.getContext("2d");let cols,drops;
 function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}

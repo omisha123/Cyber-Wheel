@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAESAR CRACKER // Cyber Arena</title>
+<style>
+:root{--bg:#03060a;--g:#00ff9c;--c:#00cfff;--r:#ff3860;--y:#ffe600;--t:#d6fff0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--t);font-family:"Courier New",monospace;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+#rain{position:fixed;inset:0;z-index:0;opacity:.28}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#00140d;border-bottom:2px solid var(--g);z-index:100;position:relative;}
+.h-logo{display:flex;align-items:center;gap:15px;}
+.h-logo img{height:40px;border-radius:50%;}
+main{position:relative;z-index:2;width:min(980px,96vw);padding:14px 0 24px;text-align:center}
+h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var(--g);text-shadow:0 0 12px var(--g),0 0 40px #00ff9c88}
+.sub{opacity:.7;font-size:14px;margin-bottom:12px}
+.screen{display:none}.screen.on{display:block}
+.hud{display:flex;justify-content:space-between;gap:10px;font-size:clamp(14px,2vw,20px);font-weight:bold;margin-bottom:6px}
+.hud b{color:var(--g)}
+#bar{height:10px;border:1px solid var(--g);background:#0a1a14;margin-bottom:22px}
+#fill{height:100%;width:100%;background:var(--g);box-shadow:0 0 12px var(--g)}
+#fill.low{background:var(--r);box-shadow:0 0 12px var(--r)}
+.lbl{font-size:13px;opacity:.65;margin:18px 0 6px}
+#cipher{font-size:clamp(28px,5vw,54px);letter-spacing:.14em;color:var(--c);text-shadow:0 0 10px #00cfff88;word-break:break-word}
+#hint{display:inline-block;margin-top:14px;padding:6px 18px;border:2px solid var(--y);color:var(--y);font-size:clamp(16px,2.4vw,24px);font-weight:bold;letter-spacing:.1em}
+#ans{width:min(92%,720px);font:bold clamp(22px,3.6vw,36px) "Courier New",monospace;letter-spacing:.14em;text-transform:uppercase;text-align:center;color:var(--g);background:#00140d;border:2px solid var(--g);padding:12px;outline:none;box-shadow:0 0 14px #00ff9c55}
+#ans:focus{box-shadow:0 0 22px var(--g)}
+#note{min-height:1.6em;font-size:17px;color:var(--y);margin:12px 0}
+.btn{font:bold 16px "Courier New",monospace;letter-spacing:.12em;padding:10px 22px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:24px;cursor:pointer;margin:6px}
+.btn:hover{background:var(--g);color:#000}
+.big{font-size:clamp(56px,11vw,120px);color:var(--g);text-shadow:0 0 20px var(--g);margin:6px 0}
+.big.zero{color:var(--r);text-shadow:0 0 20px var(--r)}
+.box{border:1px solid var(--g);padding:12px 16px;margin:12px auto;max-width:640px;text-align:left;font-size:16px;line-height:1.6;background:#00140d99}
+.flash-r{animation:fr .35s}
+@keyframes fr{50%{background:#ff386044}}
+</style></head><body>
+<header>
+  <div class="h-logo"><img src="../logo.jpeg" alt="Logo"><strong style="color:var(--g);letter-spacing:2px;">CYBER ARENA</strong></div>
+</header>
+<canvas id="rain"></canvas>
+<main>
+<h1>&gt;_ CAESAR CRACKER</h1>
+<div class="box" style="text-align:center; margin: 10px auto 20px; color:var(--y); max-width:800px;">
+  <b>DESCRIPTION:</b> Decrypt a scrambled secret message using logic and the provided hint.
+</div>
+<section id="start" class="screen on">
+  <div class="box">You get one secret message, one exact hint, <b>3 attempts</b> and <b>90 seconds</b>.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.<br><br>
+  Work out how it was scrambled using the hint, then type the decrypted message.<br><br>
+  Faster and fewer attempts means a higher score.</div>
+  <button class="btn" id="go">START (Enter)</button>
+</section>
+
+<section id="game" class="screen">
+  <div class="hud"><span>ATTEMPTS LEFT <b id="at">3</b></span><span>TIME <b id="tm">90</b></span></div>
+  <div id="bar"><div id="fill"></div></div>
+  <div class="lbl">ENCRYPTED MESSAGE</div><div id="cipher"></div>
+  <div id="hint"></div>
+  <div class="lbl">DECRYPTED MESSAGE</div>
+  <input id="ans" type="text" autocomplete="off" spellcheck="false" placeholder="type your answer">
+  <div id="note"></div>
+  <button class="btn" id="sub">SUBMIT (Enter)</button>
+</section>
+
+<section id="end" class="screen">
+  <div class="lbl">YOUR SCORE</div>
+  <div class="big" id="fs">0</div>
+  <div id="bad" style="display:none">
+    <h2 style="color:var(--r);letter-spacing:.1em;margin:0">BETTER LUCK NEXT TIME</h2>
+    <div class="box" id="sol"></div>
+  </div>
+  <button class="btn" id="again">NEXT PLAYER (Enter)</button>
+</section>
+</main>
+<audio id="fah" src="../fahhh.mp3" preload="auto"></audio>
+
+<script src="../arena.js"></script>
+<script>
+const CIPHERS=[["B", "STAY SAFE", 1], ["B", "LOCK IT", 2], ["B", "HELLO WORLD", 3], ["B", "KEEP IT SECRET", 2], ["B", "SAFE BROWSING", 3], ["B", "NEVER SHARE OTP", 1], ["B", "BREAK THE CODE", 4], ["B", "CYBER SECURITY", 2], ["B", "STAY CURIOUS", 3], ["B", "PRIVACY MATTERS", 1], ["B", "YOU CRACKED IT", 2], ["B", "GOOD LUCK", 4], ["F", "HELLO", 1], ["F", "HACKER", 3], ["F", "PASSWORD", 2], ["F", "FIREWALL", 3], ["F", "CHECK THE URL", 1], ["F", "FAKE LINK", 2], ["F", "USE TWO FACTOR", 3], ["F", "BEWARE OF SCAMS", 2], ["F", "DATA IS POWER", 1], ["F", "HACK THE PLANET", 4], ["F", "CAESAR CIPHER", 3], ["F", "GOOD JOB HACKER", 2], ["A", "CODE", 0], ["A", "SECURE", 0], ["A", "LOGIN", 0], ["A", "TRUST NO ONE", 0], ["A", "LOG OUT ALWAYS", 0], ["A", "STRONG PASSWORD", 0], ["A", "ENCRYPT IT", 0], ["A", "SECRET MESSAGE", 0], ["A", "CLICK WITH CARE", 0], ["A", "BE A WHITE HAT", 0], ["A", "WHITE RABBIT", 0], ["N", "HACK", 0], ["N", "CODE", 0], ["N", "LOGIN", 0], ["N", "SPAM", 0], ["N", "VIRUS", 0], ["N", "BYTE", 0], ["N", "DATA", 0], ["N", "WIFI", 0], ["N", "CYBER", 0], ["N", "LOCK", 0], ["N", "KEY", 0], ["N", "BOT", 0], ["N", "PING", 0], ["N", "TROJAN", 0], ["N", "PHISH", 0]];
+const TIME=90;
+const HINT={B:"SHIFT BACKWARD BY ",F:"SHIFT FORWARD BY ",A:"MIRROR ALPHABET (A=Z, B=Y)",N:"NUMBER SPLIT (A=1, B=2)"};
+const $=id=>document.getElementById(id),A0=65;
+let mode="start",cur=null,tries=0,tEnd=0,pool=[];
+
+function rot(t,k){return t.replace(/[A-Z]/g,c=>String.fromCharCode(((c.charCodeAt(0)-A0+k)%26+26)%26+A0))}
+function enc(c){
+ const [ty,t,p]=c;
+ if(ty==="B")return rot(t,-p);
+ if(ty==="F")return rot(t,p);
+ if(ty==="A")return t.replace(/[A-Z]/g,x=>String.fromCharCode(90-(x.charCodeAt(0)-A0)));
+ return t.split(" ").map(w=>w.split("").map(x=>x.charCodeAt(0)-64).join("")).join(" ");
+}
+function solution(c){
+ const [ty,t,p]=c,e=enc(c),w=e.split(" ")[0],w0=t.split(" ")[0];
+ let how;
+ if(ty==="B")how="Every letter was moved <b>back "+p+"</b>. Move each letter forward "+p+": "+w.slice(0,3).split("").map(a=>a+" → "+rot(a,p)).join(", ")+", ...";
+ else if(ty==="F")how="Every letter was moved <b>forward "+p+"</b>. Move each letter back "+p+": "+w.slice(0,3).split("").map(a=>a+" → "+rot(a,-p)).join(", ")+", ...";
+ else if(ty==="A")how="The alphabet was <b>mirrored</b> (A↔Z, B↔Y, C↔X...): "+w.slice(0,3).split("").map(a=>a+" → "+String.fromCharCode(90-(a.charCodeAt(0)-A0))).join(", ")+", ...";
+ else how="Each letter became its <b>number</b> (A=1 ... Z=26), joined together. Split the digits into numbers: "+w0.split("").map(x=>x.charCodeAt(0)-64).join("-")+" → "+w0+", ...";
+ return "Encrypted: <b>"+e+"</b><br>"+how+"<br>Answer: <b>"+t+"</b>";
+}
+function norm(t){return t.toUpperCase().replace(/[^A-Z0-9]/g,"")}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));mode=id}
+function say(t){$("note").textContent=t}
+
+function start(){
+ if(!Arena.ready())return;
+ if(!pool.length)pool=CIPHERS.map((_,i)=>i).sort(()=>Math.random()-.5);
+ cur=CIPHERS[pool.pop()];tries=3;tEnd=performance.now()+TIME*1000;
+ $("cipher").textContent=enc(cur);
+ 
+ let hText = HINT[cur[0]];
+ if(cur[0]==="B" || cur[0]==="F") hText += cur[2];
+ $("hint").textContent="HINT: "+hText;
+ 
+ $("ans").value="";$("at").textContent=3;say("");
+ show("game");$("ans").focus();
+}
+function submit(){
+ if(mode!=="game")return;
+ const v=norm($("ans").value);if(!v){say("Type your answer first.");return}
+ const left=Math.max(0,(tEnd-performance.now())/1000);
+ if(v===norm(cur[1])){
+  finish(Arena.calc("caesar",left,TIME,3-tries,3));
+ }else{
+  tries--;$("at").textContent=tries;
+  const g=$("game");g.classList.remove("flash-r");void g.offsetWidth;g.classList.add("flash-r");
+  if(tries<=0)finish(0);
+  else{say("Not correct. "+tries+(tries===1?" attempt":" attempts")+" left.");$("ans").select()}
+ }
+}
+function finish(score){
+ if(mode==="end")return;Arena.save("caesar",score);
+ show("end");$("fs").textContent=score;$("fs").classList.toggle("zero",score===0);
+ $("bad").style.display=score===0?"block":"none";
+ if(score===0){
+  $("sol").innerHTML=solution(cur);
+  const a=$("fah");a.currentTime=0;a.play().catch(()=>{});
+ }
+}
+function tick(now){
+ if(mode==="game"){
+  const left=Math.max(0,(tEnd-now)/1000);
+  $("tm").textContent=Math.ceil(left);
+  const f=$("fill");f.style.width=(left/TIME*100)+"%";f.classList.toggle("low",left<15);
+  if(left<=0)finish(0);
+ }
+ requestAnimationFrame(tick)
+}
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="game")submit();else if(mode==="start")start();else window.location.href="../index.html";}});
+Arena.mountForm();
+$("go").onclick=start;$("again").onclick=()=>window.location.href="../index.html";$("sub").onclick=submit;
+requestAnimationFrame(tick);
+
+const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
+function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
+rs();addEventListener("resize",rs);
+setInterval(()=>{rx.fillStyle="rgba(3,6,10,.12)";rx.fillRect(0,0,rc.width,rc.height);rx.fillStyle="#00ff9c";rx.font="14px monospace";
+ drops.forEach((d,i)=>{rx.fillText(Math.random()<.5?"0":"1",i*16,d*16);drops[i]=d*16>rc.height&&Math.random()>.97?0:d+1})},60);
+</script></body></html>

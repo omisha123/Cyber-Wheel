@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOMAIN DETECTIVE // Cyber Arena</title>
+<style>
+:root{--bg:#03060a;--g:#00ff9c;--c:#00cfff;--r:#ff3860;--y:#ffe600;--t:#d6fff0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--t);font-family:"Courier New",monospace;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+#rain{position:fixed;inset:0;z-index:0;opacity:.28}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#00140d;border-bottom:2px solid var(--g);z-index:100;position:relative;}
+.h-logo{display:flex;align-items:center;gap:15px;}
+.h-logo img{height:40px;border-radius:50%;}
+main{position:relative;z-index:2;width:min(980px,96vw);padding:14px 0 24px;text-align:center}
+h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var(--g);text-shadow:0 0 12px var(--g),0 0 40px #00ff9c88}
+.sub{opacity:.7;font-size:14px;margin-bottom:12px}
+.screen{display:none}.screen.on{display:block}
+.hud{display:flex;justify-content:space-between;gap:10px;font-size:clamp(14px,2vw,20px);font-weight:bold;margin-bottom:6px}
+.hud b{color:var(--g)}
+#bar{height:10px;border:1px solid var(--g);background:#0a1a14;margin-bottom:18px}
+#fill{height:100%;width:100%;background:var(--g);box-shadow:0 0 12px var(--g)}
+#fill.low{background:var(--r);box-shadow:0 0 12px var(--r)}
+.lbl{font-size:13px;opacity:.65;margin:14px 0 6px}
+#note{min-height:3.2em;font-size:16px;color:var(--y);margin:10px auto;max-width:760px;line-height:1.5}
+.btn{font:bold 16px "Courier New",monospace;letter-spacing:.12em;padding:10px 22px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:24px;cursor:pointer;margin:6px}
+.btn:hover{background:var(--g);color:#000}
+.big{font-size:clamp(56px,11vw,120px);color:var(--g);text-shadow:0 0 20px var(--g);margin:6px 0}
+.big.zero{color:var(--r);text-shadow:0 0 20px var(--r)}
+.box{border:1px solid var(--g);padding:12px 16px;margin:12px auto;max-width:700px;text-align:left;font-size:16px;line-height:1.6;background:#00140d99}
+.flash-r{animation:fr .35s}@keyframes fr{50%{background:#ff386044}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;max-width:940px;margin:12px auto}
+.item{font:inherit;text-align:left;background:#00140d;border:2px solid var(--g);color:var(--t);padding:14px;cursor:pointer}
+.item:hover{box-shadow:0 0 16px var(--g)}.item.ok{border-color:#0f8;background:#00ff9c33}.item.no{border-color:var(--r);opacity:.45}
+.item .k{color:var(--y);font-weight:bold;margin-right:8px}.dim{opacity:.45}
+.url{font-size:clamp(16px,2.2vw,22px);letter-spacing:.04em;word-break:break-all}
+</style></head><body>
+<header>
+  <div class="h-logo"><img src="../logo.jpeg" alt="Logo"><strong style="color:var(--g);letter-spacing:2px;">CYBER ARENA</strong></div>
+</header>
+<canvas id="rain"></canvas>
+<main>
+<h1>&gt;_ DOMAIN DETECTIVE</h1>
+<div class="box" style="text-align:center; margin: 10px auto 20px; color:var(--y); max-width:800px;">
+  <b>DESCRIPTION:</b> Spot the fake website address hiding among the real ones. Find the imposter before time runs out.
+</div>
+<section id="start" class="screen on"><div class="box">Each round shows six website addresses. <b>Exactly one is a fake</b> pretending to be a real site.<br><br>Click it (or press its number). You have <b>5 rounds</b>, <b>3 mistakes</b> in total and <b>60 seconds</b>.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.</div><button class="btn" id="go">START (Enter)</button></section>
+<section id="game" class="screen"><div class="hud"><span>MISTAKES LEFT <b id="ms">3</b></span><span>ROUND <b id="rn">1</b>/5</span><span>TIME <b id="tm">60</b></span></div>
+<div id="bar"><div id="fill"></div></div>
+<div class="lbl" id="prompt"></div><div class="grid" id="grid"></div><div id="note"></div></section>
+<section id="end" class="screen">
+  <div class="lbl">YOUR SCORE</div><div class="big" id="fs">0</div>
+  <div id="bad" style="display:none"><h2 style="color:var(--r);letter-spacing:.1em;margin:0">BETTER LUCK NEXT TIME</h2><div class="box" id="sol"></div></div>
+  <button class="btn" id="again">NEXT PLAYER (Enter)</button>
+</section>
+</main>
+<audio id="fah" src="../fahhh.mp3" preload="auto"></audio>
+<script src="../arena.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let mode="start",tEnd=0;
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));mode=id}
+function say(t){$("note").innerHTML=t}
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1])}
+function esc(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function flash(){const g=$("game");g.classList.remove("flash-r");void g.offsetWidth;g.classList.add("flash-r")}
+function end(score,why){
+ show("end");$("fs").textContent=score;$("fs").classList.toggle("zero",score===0);
+ $("bad").style.display=score===0?"block":"none";
+ if(score===0){$("sol").innerHTML=why||"";const a=$("fah");a.currentTime=0;a.play().catch(()=>{})}
+}
+function left(){return Math.max(0,(tEnd-performance.now())/1000)}
+function won(mistakes,limit){const s=Arena.calc(GAME,left(),TIME,mistakes,limit);Arena.save(GAME,s);end(s)}
+function lost(why){if(mode!=="game")return;Arena.save(GAME,0);end(0,why)}
+function clock(now){
+ if(mode==="game"){const l=left();$("tm").textContent=Math.ceil(l);
+  const f=$("fill");f.style.width=(l/TIME*100)+"%";f.classList.toggle("low",l<15);if(l<=0)timeUp()}
+ requestAnimationFrame(clock)}
+const GAME="domain",TIME=60,ROUNDS=5,LIMIT=3;let round=0,miss=0,cur=null,locked=false,used=[];
+const D=[["google", "google.com", "gooogle.com", "an extra letter 'o' was added"], ["paypal", "paypal.com", "paypa1.com", "the digit 1 replaces the letter l"], ["microsoft", "microsoft.com", "rnicrosoft.com", "'rn' looks like 'm'"], ["amazon", "amazon.in", "amazon-secure-login.in", "extra words wrapped around a real brand name"], ["facebook", "facebook.com", "faceb00k.com", "zeros replace the letter o"], ["instagram", "instagram.com", "instagarm.com", "two letters are swapped"], ["netflix", "netflix.com", "netfIix.com", "a capital I replaces the letter l"], ["whatsapp", "whatsapp.com", "whatsapp.co", "wrong ending: .co instead of .com"], ["hdfc", "hdfcbank.com", "hdfcbank-kyc.com", "an extra word after the bank name"], ["flipkart", "flipkart.com", "fIipkart.com", "a capital I replaces the letter l"], ["linkedin", "linkedin.com", "linkedln.com", "'ln' looks like 'in'"], ["apple", "apple.com", "app1e.com", "the digit 1 replaces the letter l"], ["github", "github.com", "gihtub.com", "two letters are swapped"], ["youtube", "youtube.com", "youtub3.com", "the digit 3 replaces the letter e"], ["spotify", "spotify.com", "spotifyy.com", "an extra letter 'y'"], ["dropbox", "dropbox.com", "dropb0x.com", "a zero replaces the letter o"], ["paytm", "paytm.com", "paytm-rewards.com", "an extra word that promises rewards"], ["irctc", "irctc.co.in", "irctc.co.in.login-help.com", "the real name comes first, but the true domain is the LAST part: login-help.com"], ["zoom", "zoom.us", "zoom-meeting.us", "an extra word was added"], ["snapchat", "snapchat.com", "snapchaat.com", "an extra letter 'a'"], ["telegram", "telegram.org", "telegramm.org", "an extra letter 'm'"], ["discord", "discord.com", "disc0rd.com", "a zero replaces the letter o"], ["reddit", "reddit.com", "reddlt.com", "'l' replaces the letter i"], ["adobe", "adobe.com", "adobe-download.com", "an extra word that bait you to download"], ["slack", "slack.com", "sIack.com", "a capital I replaces the letter l"], ["swiggy", "swiggy.com", "swlggy.com", "'l' replaces the letter i"], ["zomato", "zomato.com", "zomatto.com", "a doubled letter t"], ["myntra", "myntra.com", "mynrta.com", "two letters are swapped"], ["phonepe", "phonepe.com", "phonepay.com", "a similar sounding word replaces the real spelling"], ["sbi", "onlinesbi.sbi", "onlinesbi.co", "wrong ending: .co instead of .sbi"], ["icici", "icicibank.com", "icicibank-login.com", "an extra word 'login' was added"], ["axis", "axisbank.com", "axisbank.corn", "'rn' in .corn looks like the m in .com"], ["airtel", "airtel.in", "airtel-recharge.in", "an extra word was added"], ["jio", "jio.com", "jlo.com", "'l' replaces the letter i"], ["coursera", "coursera.org", "cousera.org", "the letter r is missing"], ["udemy", "udemy.com", "udemmy.com", "an extra letter 'm'"], ["canva", "canva.com", "kanva.com", "'k' replaces the sound-alike letter c"], ["twitch", "twitch.tv", "twtich.tv", "two letters are swapped"], ["steam", "steampowered.com", "steamp0wered.com", "a zero replaces the letter o"], ["yahoo", "yahoo.com", "yahooo.com", "an extra letter 'o'"], ["bing", "bing.com", "blng.com", "'l' replaces the letter i"], ["wikipedia", "wikipedia.org", "wikipedla.org", "'l' replaces the letter i"], ["quora", "quora.com", "quara.com", "the letter o became a"], ["medium", "medium.com", "rnedium.com", "'rn' looks like 'm'"], ["ebay", "ebay.com", "eebay.com", "an extra letter 'e'"], ["nike", "nike.com", "nlke.com", "'l' replaces the letter i"], ["pinterest", "pinterest.com", "pinterst.com", "the letter e is missing"], ["stackoverflow", "stackoverflow.com", "stackoverfIow.com", "a capital I replaces the letter l"], ["kaggle", "kaggle.com", "kagle.com", "a letter g is missing"], ["leetcode", "leetcode.com", "leetc0de.com", "a zero replaces the letter o"], ["gfg", "geeksforgeeks.org", "geeksforgeek.org", "the final letter s is missing"], ["vjti", "vjti.ac.in", "vjti-ac.in", "a dash replaces a dot, so it is not the college domain"]];
+function makeRound(){const f=shuffle(D.filter(d=>!used.includes(d[0])))[0];used.push(f[0]);
+ const o=shuffle(D.filter(d=>d[0]!==f[0])).slice(0,5);
+ const items=shuffle([{u:f[2],bad:1}].concat(o.map(x=>({u:x[1],bad:0})))).map(x=>({bad:x.bad,html:'<span class="url"><span class="dim">https://</span>'+x.u+'</span>'}));
+ return{items,why:"The fake was <b>"+f[2]+"</b> (real: "+f[1]+"). Trick: "+f[3]+"."}}
+$("prompt").textContent="WHICH ADDRESS IS FAKE?";
+function start(){if(!Arena.ready())return;used=[];round=0;miss=0;$("ms").textContent=3;say("");tEnd=performance.now()+TIME*1000;show("game");next()}
+function next(){if(mode!=="game")return;if(round>=ROUNDS){won(miss,LIMIT);return}
+ round++;$("rn").textContent=round;cur=makeRound();locked=false;
+ $("grid").innerHTML=cur.items.map((it,i)=>'<button class="item" data-i="'+i+'"><span class="k">'+(i+1)+'</span>'+it.html+'</button>').join("")}
+function pick(i){if(mode!=="game"||locked||!cur.items[i])return;const b=$("grid").children[i];
+ if(cur.items[i].bad){locked=true;b.classList.add("ok");say("Correct! "+cur.why);setTimeout(next,650)}
+ else{miss++;$("ms").textContent=3-miss;b.classList.add("no");b.disabled=true;flash();
+  if(miss>=LIMIT)lost("Round "+round+": "+cur.why);else say("Not that one. "+(3-miss)+(miss===2?" mistake":" mistakes")+" left.")}}
+function timeUp(){lost(cur?"Round "+round+": "+cur.why:"")}
+$("grid").onclick=e=>{const b=e.target.closest(".item");if(b)pick(+b.dataset.i)};
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")location.href="../index.html"}else if(mode==="game"&&/^[1-9]$/.test(e.key)&&document.activeElement.tagName!=="INPUT")pick(+e.key-1)});
+Arena.mountForm();
+$("go").onclick=start;$("again").onclick=()=>{location.href="../index.html"};requestAnimationFrame(clock);
+const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
+function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
+rs();addEventListener("resize",rs);
+setInterval(()=>{rx.fillStyle="rgba(3,6,10,.12)";rx.fillRect(0,0,rc.width,rc.height);rx.fillStyle="#00ff9c";rx.font="14px monospace";
+ drops.forEach((d,i)=>{rx.fillText(Math.random()<.5?"0":"1",i*16,d*16);drops[i]=d*16>rc.height&&Math.random()>.97?0:d+1})},60);
+</script></body></html>

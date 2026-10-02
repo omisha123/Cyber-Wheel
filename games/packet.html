@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PACKET NINJA // Cyber Arena</title>
+<style>
+:root{--bg:#03060a;--g:#00ff9c;--c:#00cfff;--r:#ff3860;--y:#ffe600;--t:#d6fff0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--t);font-family:"Courier New",monospace;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+#rain{position:fixed;inset:0;z-index:0;opacity:.28}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:#00140d;border-bottom:2px solid var(--g);z-index:100;position:relative;}
+.h-logo{display:flex;align-items:center;gap:15px;}
+.h-logo img{height:40px;border-radius:50%;}
+main{position:relative;z-index:2;width:min(980px,96vw);padding:14px 0 24px;text-align:center}
+h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var(--g);text-shadow:0 0 12px var(--g),0 0 40px #00ff9c88}
+.sub{opacity:.7;font-size:14px;margin-bottom:12px}
+.screen{display:none}.screen.on{display:block}
+.hud{display:flex;justify-content:space-between;gap:10px;font-size:clamp(14px,2vw,20px);font-weight:bold;margin-bottom:6px}
+.hud b{color:var(--g)}
+#bar{height:10px;border:1px solid var(--g);background:#0a1a14;margin-bottom:18px}
+#fill{height:100%;width:100%;background:var(--g);box-shadow:0 0 12px var(--g)}
+#fill.low{background:var(--r);box-shadow:0 0 12px var(--r)}
+.lbl{font-size:13px;opacity:.65;margin:14px 0 6px}
+#note{min-height:3.2em;font-size:16px;color:var(--y);margin:10px auto;max-width:760px;line-height:1.5}
+.btn{font:bold 16px "Courier New",monospace;letter-spacing:.12em;padding:10px 22px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:24px;cursor:pointer;margin:6px}
+.btn:hover{background:var(--g);color:#000}
+.big{font-size:clamp(56px,11vw,120px);color:var(--g);text-shadow:0 0 20px var(--g);margin:6px 0}
+.big.zero{color:var(--r);text-shadow:0 0 20px var(--r)}
+.box{border:1px solid var(--g);padding:12px 16px;margin:12px auto;max-width:700px;text-align:left;font-size:16px;line-height:1.6;background:#00140d99}
+.flash-r{animation:fr .35s}@keyframes fr{50%{background:#ff386044}}
+#c{width:100%;height:min(56vh,500px);display:block;border:2px solid var(--g);background:#00080dcc;cursor:crosshair;touch-action:none;box-shadow:0 0 22px #00ff9c44}
+.legend{font-size:13px;opacity:.75;margin:8px 0}</style></head><body>
+<header>
+  <div class="h-logo"><img src="../logo.jpeg" alt="Logo"><strong style="color:var(--g);letter-spacing:2px;">CYBER ARENA</strong></div>
+</header>
+<canvas id="rain"></canvas>
+<main>
+<h1>&gt;_ PACKET NINJA</h1>
+<div class="box" style="text-align:center; margin: 10px auto 20px; color:var(--y); max-width:800px;">
+  <b>DESCRIPTION:</b> Slice the RED threats with your mouse. Let the GREEN safe traffic pass!
+</div>
+<section id="start" class="screen on"><div class="box">Network packets fly across the screen. <b>Slice the threats (marked in RED)</b> by moving your mouse across them. <b>Do not slice safe traffic (marked in GREEN)</b> like HTTPS or EMAIL.<br><br>Block <b>15 threats</b> within <b>60 seconds</b>. You have <b>3 lives</b>: slicing a safe packet, or letting a threat fall past, costs a life. Finish faster for a higher score.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.</div><button class="btn" id="go">START (Enter)</button></section>
+<section id="game" class="screen"><div class="hud"><span>BLOCKED <b id="bl">0</b>/15</span><span>LIVES <b id="lv">3</b></span><span>TIME <b id="tm">60</b></span></div>
+<div id="bar"><div id="fill"></div></div>
+<canvas id="c"></canvas>
+<div class="legend">Slice the RED THREATS. Never slice GREEN safe traffic.</div><div id="note"></div></section>
+<section id="end" class="screen">
+  <div class="lbl">YOUR SCORE</div><div class="big" id="fs">0</div>
+  <div id="bad" style="display:none"><h2 style="color:var(--r);letter-spacing:.1em;margin:0">BETTER LUCK NEXT TIME</h2><div class="box" id="sol"></div></div>
+  <button class="btn" id="again">NEXT PLAYER (Enter)</button>
+</section>
+</main>
+<audio id="fah" src="../fahhh.mp3" preload="auto"></audio>
+<script src="../arena.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let mode="start",tEnd=0;
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));mode=id}
+function say(t){$("note").innerHTML=t}
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1])}
+function esc(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function flash(){const g=$("game");g.classList.remove("flash-r");void g.offsetWidth;g.classList.add("flash-r")}
+function end(score,why){
+ show("end");$("fs").textContent=score;$("fs").classList.toggle("zero",score===0);
+ $("bad").style.display=score===0?"block":"none";
+ if(score===0){$("sol").innerHTML=why||"";const a=$("fah");a.currentTime=0;a.play().catch(()=>{})}
+}
+function left(){return Math.max(0,(tEnd-performance.now())/1000)}
+function won(mistakes,limit){const s=Arena.calc(GAME,left(),TIME,mistakes,limit);Arena.save(GAME,s);end(s)}
+function lost(why){if(mode!=="game")return;Arena.save(GAME,0);end(0,why)}
+function clock(now){
+ if(mode==="game"){const l=left();$("tm").textContent=Math.ceil(l);
+  const f=$("fill");f.style.width=(l/TIME*100)+"%";f.classList.toggle("low",l<15);if(l<=0)timeUp()}
+ requestAnimationFrame(clock)}
+const GAME="packet",TIME=60,GOAL=15;
+const BAD=[["MALWARE.EXE","A malicious program that damages or controls a computer."],["PORT SCAN","An attacker knocking on every door to find an open one."],["DDOS FLOOD","Millions of fake requests meant to crash a server."],["KEYLOGGER","Records every key you type, including passwords."],["RANSOMWARE","Locks your files and demands money."],["SQL INJECT","Malicious database commands slipped into a web form."],["PHISH LINK","A fake link that steals your login."],["BOTNET PING","A hacked computer reporting to its attacker."],["TROJAN.ZIP","A harmless-looking file hiding a virus."],["BRUTE FORCE","Thousands of password guesses per second."],["SPYWARE","Secretly watches everything you do."],["WORM","Malware that copies itself across a network."],["XSS SCRIPT","A malicious script injected into a web page."],["ROOTKIT","Hides deep in a system so the attacker keeps access."]];
+const GOOD=[["HTTPS","Normal encrypted web traffic."],["EMAIL","An ordinary email delivery."],["DNS QUERY","Looking up a website's address. Normal."],["VIDEO CALL","Live meeting traffic."],["OS UPDATE","A genuine security update."],["LOGIN OK","A user signing in correctly."],["FILE BACKUP","A scheduled backup to the server."],["WEB PAGE","A normal page load."],["VPN TUNNEL","An encrypted remote connection."],["MUSIC STREAM","Normal streaming traffic."],["PRINT JOB","A document sent to the printer."],["SSH ADMIN","An authorised admin connection."]];
+const cv=$("c"),cx=cv.getContext("2d");
+let W=900,H=460,pk=[],hv=[],fl=[],tr=[],blocked=0,lives=3,lastWhy="",spawnAt=0,t0=0,prevT=0,mx=null,my=null;
+function size(){const d=devicePixelRatio||1;W=cv.clientWidth||900;H=cv.clientHeight||460;cv.width=W*d;cv.height=H*d;cx.setTransform(d,0,0,d,0,0)}
+function start(){if(!Arena.ready())return;pk=[];hv=[];fl=[];tr=[];blocked=0;lives=3;lastWhy="";mx=null;
+ $("bl").textContent=0;$("lv").textContent=3;say("");t0=prevT=performance.now();tEnd=t0+TIME*1000;spawnAt=0;show("game");size()}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function spawn(el){const n=1+(Math.random()<.2?1:0)+(el>25&&Math.random()<.2?1:0);
+ for(let i=0;i<n;i++){const bad=Math.random()<.58,x=W*(.12+.76*Math.random()),g=H*1.2,h=H*(.45+.25*Math.random());
+  const vy=-Math.sqrt(2*g*h),vx=(W/2-x)*(.1+Math.random()*.25)+(Math.random()-.5)*W*.12;
+  pk.push({x,y:H+40,vx,vy,g,rot:(Math.random()-.5)*.5,vr:(Math.random()-.5)*1.2,t:bad?pick(BAD):pick(GOOD),bad,cut:false})}}
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+function card(label,a,isBad){cx.globalAlpha=a;rr(-60,-24,120,48,10);cx.fillStyle="#04141a";cx.fill();cx.lineWidth=2;cx.strokeStyle=isBad?"#ff3860":"#00ff9c";cx.stroke();
+ cx.fillStyle="#d6fff0";cx.font="bold 14px Courier New";cx.textAlign="center";cx.textBaseline="middle";cx.fillText(label,0,0);cx.globalAlpha=1}
+function segDist(ax,ay,bx,by,px,py){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(ax+t*dx-px,ay+t*dy-py)}
+function ft(x,y,txt,col){fl.push({x,y,txt,col,life:1})}
+function hud(){$("bl").textContent=blocked;$("lv").textContent=Math.max(0,lives)}
+function loseLife(why,x,y,txt){lives--;lastWhy=why;hud();flash();ft(x,y,txt,"#ff3860");if(lives<=0)lost(lastWhy+"<br>Blocked "+blocked+" of "+GOAL+" threats.<br><br><b>Tip:</b> slice only the RED threats and let GREEN safe traffic pass.")}
+function cut(p){p.cut=true;hv.push({x:p.x,y:p.y,vx:p.vx-120,vy:p.vy,g:p.g,rot:p.rot,vr:-2,s:0,t:p.t[0],life:1,bad:p.bad},{x:p.x,y:p.y,vx:p.vx+120,vy:p.vy,g:p.g,rot:p.rot,vr:2,s:1,t:p.t[0],life:1,bad:p.bad});
+ if(p.bad){blocked++;hud();ft(p.x,p.y,"BLOCKED","#00ff9c");if(blocked>=GOAL)won(3-lives,3)}
+ else loseLife("You sliced <b>"+p.t[0]+"</b>. "+p.t[1]+" Safe traffic must be allowed through.",p.x,p.y,"SAFE TRAFFIC! -1")}
+function move(e){const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ if(mode==="game"&&mx!==null&&Math.hypot(x-mx,y-my)>3)pk.forEach(p=>{if(!p.cut&&segDist(mx*.43,my,x*.43,y,p.x*.43,p.y)<30&&mode==="game")cut(p)});
+ tr.push({x,y,t:performance.now()});mx=x;my=y}
+cv.addEventListener("pointermove",move);cv.addEventListener("pointerleave",()=>{mx=null});
+function loop(now){const dt=Math.min(.05,(now-prevT)/1000);prevT=now;
+ if(mode==="game"){const el=(now-t0)/1000;
+  if(now>=spawnAt){spawn(el);spawnAt=now+Math.max(550,1150-el*13)}
+  cx.clearRect(0,0,W,H);
+  tr=tr.filter(q=>now-q.t<160);cx.lineCap="round";
+  for(let i=1;i<tr.length;i++){cx.strokeStyle="rgba(255,255,255,"+(1-(now-tr[i].t)/160)+")";cx.lineWidth=5;cx.beginPath();cx.moveTo(tr[i-1].x,tr[i-1].y);cx.lineTo(tr[i].x,tr[i].y);cx.stroke()}
+  for(const p of pk){p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
+   if(!p.cut){cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);card(p.t[0],1,p.bad);cx.restore()}
+   if(!p.cut&&p.y>H+60&&p.vy>0){p.cut=true;p.gone=true;if(p.bad)loseLife("A <b>"+p.t[0]+"</b> got through. "+p.t[1],Math.max(80,Math.min(W-80,p.x)),H-30,"BREACH! -1")}}
+  pk=pk.filter(p=>!(p.gone||(p.cut&&p.y>H+200)));
+  for(const h of hv){h.vy+=h.g*dt;h.x+=h.vx*dt;h.y+=h.vy*dt;h.rot+=h.vr*dt;h.life-=dt*.9;
+   cx.save();cx.translate(h.x,h.y);cx.rotate(h.rot);cx.beginPath();cx.rect(h.s?0:-62,-30,62,60);cx.clip();card(h.t,Math.max(0,h.life),h.bad);cx.restore()}
+  hv=hv.filter(h=>h.life>0);
+  for(const f of fl){f.y-=40*dt;f.life-=dt*1.2;cx.globalAlpha=Math.max(0,f.life);cx.fillStyle=f.col;cx.font="bold 18px Courier New";cx.textAlign="center";cx.fillText(f.txt,f.x,f.y);cx.globalAlpha=1}
+  fl=fl.filter(f=>f.life>0)}
+ requestAnimationFrame(loop)}
+function timeUp(){lost("Time ran out. You blocked "+blocked+" of "+GOAL+" threats."+(lastWhy?"<br>"+lastWhy:""))}
+addEventListener("resize",()=>{if(mode==="game")size()});
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")location.href="../index.html"}});
+requestAnimationFrame(loop);
+Arena.mountForm();
+$("go").onclick=start;$("again").onclick=()=>{location.href="../index.html"};requestAnimationFrame(clock);
+const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
+function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
+rs();addEventListener("resize",rs);
+setInterval(()=>{rx.fillStyle="rgba(3,6,10,.12)";rx.fillRect(0,0,rc.width,rc.height);rx.fillStyle="#00ff9c";rx.font="14px monospace";
+ drops.forEach((d,i)=>{rx.fillText(Math.random()<.5?"0":"1",i*16,d*16);drops[i]=d*16>rc.height&&Math.random()>.97?0:d+1})},60);
+</script></body></html>
