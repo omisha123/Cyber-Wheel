@@ -44,6 +44,10 @@ canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9
 .lbBox th{color:var(--g);text-align:left;border-bottom:1px solid var(--g);padding:6px 4px}
 .lbBox td{padding:6px 4px;border-bottom:1px solid #00ff9c22}
 .lbBox td.s{color:#ffe600;font-weight:bold;text-align:right}.lbBox th.s{text-align:right}
+#locked{position:relative;z-index:2;display:none;max-width:560px;margin:40px 16px;padding:24px;border:2px solid #ff3860;background:#00140d;text-align:center;line-height:1.6;box-shadow:0 0 25px #ff386055}
+#locked h2{margin:0 0 10px;color:#ff3860;letter-spacing:.12em}
+body.locked #locked{display:block}
+body.locked h1,body.locked .sub,body.locked #stage{display:none}
 .lbBtns{display:flex;gap:10px;justify-content:center;margin-top:12px}
 .lbBtns button{font:bold 14px "Courier New",monospace;padding:8px 16px;border:2px solid var(--g);background:#000;color:var(--g);border-radius:20px;cursor:pointer}
 </style></head><body>
@@ -55,7 +59,8 @@ canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9
   <button id="lbBtn">LEADERBOARD</button>
 </header>
 <canvas id="rain"></canvas>
-<div id="lb"><div class="lbBox"><h2>&gt;_ LEADERBOARD</h2><div class="lbNote">best score per player, all games</div><div id="lbList"></div><div class="lbBtns"><button id="lbClose">CLOSE</button><button id="lbReset">RESET</button></div></div></div>
+<div id="lb"><div class="lbBox"><h2>&gt;_ LEADERBOARD</h2><div class="lbNote" id="lbNote">best score per player, all games</div><div id="lbList"></div><div class="lbBtns"><button id="lbClose">CLOSE</button></div></div></div>
+<div id="locked"><h2>&gt;_ WHEEL LOCKED</h2>You already played through the QR code, so the wheel is closed on this device.<br>To play again, come to the stall and spin the wheel there.<br><br>You can still check the leaderboard above.</div>
 <h1>&gt;_ CYBER ARENA</h1>
 <div class="sub">[ spin the wheel • get your challenge ]</div>
 <div id="stage">
@@ -102,26 +107,32 @@ function done(i){win=i;const g=GAMES[i];const t0=performance.now();
  (function f(now){const p=Math.min(1,(now-t0)/1100);exp=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;draw();if(p<1)requestAnimationFrame(f);else show(g)})(t0)}
 function show(g){document.getElementById("ct").textContent=g.name;document.getElementById("cd").textContent=g.desc;
  const q=document.getElementById("qr");q.innerHTML="";try{new QRCode(q,{text:g.url,width:130,height:130})}catch(e){q.style.display="none"}
- document.getElementById("cl").href=g.url;card.style.display="flex";requestAnimationFrame(()=>card.classList.add("on"));
+ document.getElementById("cl").href=g.url+"?from=wheel";card.style.display="flex";requestAnimationFrame(()=>card.classList.add("on"));
  hub.style.display="none"}
 document.getElementById("again").onclick=()=>{hub.style.display="";win=-1;exp=0;card.classList.remove("on");card.style.display="none";draw();spinning=false;hub.disabled=false};
 hub.onclick=spin;addEventListener("resize",size);size();
-// leaderboard
-const lbEl=document.getElementById("lb");
-function showLB(){const t=Arena.top(10);
- document.getElementById("lbList").innerHTML=t.length?"<table><tr><th>#</th><th>NAME</th><th>BRANCH</th><th>GAME</th><th class='s'>SCORE</th></tr>"+t.map((e,k)=>"<tr><td>"+(k+1)+"</td><td>"+esc(e.n)+"</td><td>"+esc(e.b)+"</td><td>"+Arena.gameName(e.g)+"</td><td class='s'>"+e.s+"</td></tr>").join("")+"</table>":"<p style='text-align:center;opacity:.7'>No scores yet. Spin the wheel and play!</p>";
- lbEl.classList.add("on")}
+// QR lock: a device that played via QR cannot use the wheel. Staff can lift it with ?unlock=CODE
+const STAFF_CODE="stall2026"; // change me
+if(new URLSearchParams(location.search).get("unlock")===STAFF_CODE){Arena.unlock();history.replaceState(null,"",location.pathname)}
+if(Arena.isLocked())document.body.classList.add("locked");
+// leaderboard (shared for everyone, stored on the server, auto-resets after 3 days)
+const lbEl=document.getElementById("lb");let lbTimer=null;
 function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function resetIn(sec){if(!sec)return"";const d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600),m=Math.floor(sec%3600/60);return " • resets in "+(d?d+"d ":"")+(h||d?h+"h ":"")+(!d?m+"m":"")}
+async function loadLB(first){
+ const box=document.getElementById("lbList");
+ if(first)box.innerHTML="<p style='text-align:center;opacity:.7'>Loading...</p>";
+ try{
+  const r=await Arena.top(),t=r.scores||[];
+  document.getElementById("lbNote").textContent="best score per player, all games"+resetIn(r.ttl);
+  box.innerHTML=t.length?"<table><tr><th>#</th><th>NAME</th><th>BRANCH</th><th>GAME</th><th class='s'>SCORE</th></tr>"+t.map((e,k)=>"<tr><td>"+(k+1)+"</td><td>"+esc(e.n)+"</td><td>"+esc(e.b)+"</td><td>"+esc(Arena.gameName(e.g))+"</td><td class='s'>"+e.s+"</td></tr>").join("")+"</table>":"<p style='text-align:center;opacity:.7'>No scores yet. Spin the wheel and play!</p>";
+ }catch(e){if(first)box.innerHTML="<p style='text-align:center;color:#ff3860'>Could not load the leaderboard. Check the connection and try again.</p>"}
+}
+function showLB(){lbEl.classList.add("on");loadLB(true);clearInterval(lbTimer);lbTimer=setInterval(()=>loadLB(false),10000)}
+function hideLB(){lbEl.classList.remove("on");clearInterval(lbTimer)}
 document.getElementById("lbBtn").onclick=showLB;
-document.getElementById("lbClose").onclick=()=>lbEl.classList.remove("on");
-document.getElementById("lbReset").onclick=()=>{
-  const val = prompt("Type RESET to clear the whole leaderboard");
-  if(val && val.trim().toUpperCase() === "RESET"){
-    Arena.clear();
-    showLB();
-  }
-};
-addEventListener("keydown",e=>{if(e.key==="l"||e.key==="L")lbEl.classList.contains("on")?lbEl.classList.remove("on"):showLB();else if(e.key==="Escape")lbEl.classList.remove("on")});
+document.getElementById("lbClose").onclick=hideLB;
+addEventListener("keydown",e=>{if(e.key==="l"||e.key==="L")lbEl.classList.contains("on")?hideLB():showLB();else if(e.key==="Escape")hideLB()});
 // matrix rain
 const rc=document.getElementById("rain"),rx=rc.getContext("2d");let cols,drops;
 function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}

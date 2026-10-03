@@ -39,14 +39,14 @@ h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var
 <div class="box" style="text-align:center; margin: 10px auto 20px; color:var(--y); max-width:800px;">
   <b>DESCRIPTION:</b> Slice the RED threats with your mouse. Let the GREEN safe traffic pass!
 </div>
-<section id="start" class="screen on"><div class="box">Network packets fly across the screen. <b>Slice the threats (marked in RED)</b> by moving your mouse across them. <b>Do not slice safe traffic (marked in GREEN)</b> like HTTPS or EMAIL.<br><br>Block <b>15 threats</b> within <b>60 seconds</b>. You have <b>3 lives</b>: slicing a safe packet, or letting a threat fall past, costs a life. Finish faster for a higher score.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.</div><button class="btn" id="go">START (Enter)</button></section>
-<section id="game" class="screen"><div class="hud"><span>BLOCKED <b id="bl">0</b>/15</span><span>LIVES <b id="lv">3</b></span><span>TIME <b id="tm">60</b></span></div>
+<section id="start" class="screen on"><div class="box">Network packets fly across the screen. <b>Slice the threats (marked in RED)</b> by moving your mouse across them. <b>Do not slice safe traffic (marked in GREEN)</b> like HTTPS or EMAIL.<br><br>The game runs for the <b>full 60 seconds</b>. Every blocked threat gives <b>+20</b>. Slicing safe traffic costs <b>-30</b>, and letting a threat fall past costs <b>-10</b>. Score as high as you can.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.</div><button class="btn" id="go">START (Enter)</button></section>
+<section id="game" class="screen"><div class="hud"><span>BLOCKED <b id="bl">0</b></span><span>SCORE <b id="sc">0</b></span><span>TIME <b id="tm">60</b></span></div>
 <div id="bar"><div id="fill"></div></div>
 <canvas id="c"></canvas>
 <div class="legend">Slice the RED THREATS. Never slice GREEN safe traffic.</div><div id="note"></div></section>
 <section id="end" class="screen">
   <div class="lbl">YOUR SCORE</div><div class="big" id="fs">0</div>
-  <div id="bad" style="display:none"><h2 style="color:var(--r);letter-spacing:.1em;margin:0">BETTER LUCK NEXT TIME</h2><div class="box" id="sol"></div></div>
+  <div id="bad" style="display:none"><h2 id="badh" style="color:var(--r);letter-spacing:.1em;margin:0">BETTER LUCK NEXT TIME</h2><div class="box" id="sol"></div></div>
   <button class="btn" id="again">NEXT PLAYER (Enter)</button>
 </section>
 </main>
@@ -62,24 +62,25 @@ function esc(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g
 function flash(){const g=$("game");g.classList.remove("flash-r");void g.offsetWidth;g.classList.add("flash-r")}
 function end(score,why){
  show("end");$("fs").textContent=score;$("fs").classList.toggle("zero",score===0);
- $("bad").style.display=score===0?"block":"none";
- if(score===0){$("sol").innerHTML=why||"";const a=$("fah");a.currentTime=0;a.play().catch(()=>{})}
+ $("bad").style.display="block";$("badh").style.display=score===0?"block":"none";
+ $("sol").innerHTML=why||"";
+ if(score===0){const a=$("fah");a.currentTime=0;a.play().catch(()=>{})}
 }
 function left(){return Math.max(0,(tEnd-performance.now())/1000)}
-function won(mistakes,limit){const s=Arena.calc(GAME,left(),TIME,mistakes,limit);Arena.save(GAME,s);end(s)}
-function lost(why){if(mode!=="game")return;Arena.save(GAME,0);end(0,why)}
+function finish(){if(mode!=="game")return;const s=score;Arena.save(GAME,s);
+ end(s,"Threats blocked: <b>"+blocked+"</b> (+"+blocked*HIT+")<br>Safe traffic sliced: <b>"+safeHit+"</b> ("+safeHit*SAFE+")<br>Threats missed: <b>"+missed+"</b> ("+missed*MISS+")")}
 function clock(now){
  if(mode==="game"){const l=left();$("tm").textContent=Math.ceil(l);
   const f=$("fill");f.style.width=(l/TIME*100)+"%";f.classList.toggle("low",l<15);if(l<=0)timeUp()}
  requestAnimationFrame(clock)}
-const GAME="packet",TIME=60,GOAL=15;
+const GAME="packet",TIME=60,HIT=20,SAFE=-30,MISS=-10;
 const BAD=[["MALWARE.EXE","A malicious program that damages or controls a computer."],["PORT SCAN","An attacker knocking on every door to find an open one."],["DDOS FLOOD","Millions of fake requests meant to crash a server."],["KEYLOGGER","Records every key you type, including passwords."],["RANSOMWARE","Locks your files and demands money."],["SQL INJECT","Malicious database commands slipped into a web form."],["PHISH LINK","A fake link that steals your login."],["BOTNET PING","A hacked computer reporting to its attacker."],["TROJAN.ZIP","A harmless-looking file hiding a virus."],["BRUTE FORCE","Thousands of password guesses per second."],["SPYWARE","Secretly watches everything you do."],["WORM","Malware that copies itself across a network."],["XSS SCRIPT","A malicious script injected into a web page."],["ROOTKIT","Hides deep in a system so the attacker keeps access."]];
 const GOOD=[["HTTPS","Normal encrypted web traffic."],["EMAIL","An ordinary email delivery."],["DNS QUERY","Looking up a website's address. Normal."],["VIDEO CALL","Live meeting traffic."],["OS UPDATE","A genuine security update."],["LOGIN OK","A user signing in correctly."],["FILE BACKUP","A scheduled backup to the server."],["WEB PAGE","A normal page load."],["VPN TUNNEL","An encrypted remote connection."],["MUSIC STREAM","Normal streaming traffic."],["PRINT JOB","A document sent to the printer."],["SSH ADMIN","An authorised admin connection."]];
 const cv=$("c"),cx=cv.getContext("2d");
-let W=900,H=460,pk=[],hv=[],fl=[],tr=[],blocked=0,lives=3,lastWhy="",spawnAt=0,t0=0,prevT=0,mx=null,my=null;
+let W=900,H=460,pk=[],hv=[],fl=[],tr=[],blocked=0,score=0,safeHit=0,missed=0,spawnAt=0,t0=0,prevT=0,mx=null,my=null;
 function size(){const d=devicePixelRatio||1;W=cv.clientWidth||900;H=cv.clientHeight||460;cv.width=W*d;cv.height=H*d;cx.setTransform(d,0,0,d,0,0)}
-function start(){if(!Arena.ready())return;pk=[];hv=[];fl=[];tr=[];blocked=0;lives=3;lastWhy="";mx=null;
- $("bl").textContent=0;$("lv").textContent=3;say("");t0=prevT=performance.now();tEnd=t0+TIME*1000;spawnAt=0;show("game");size()}
+function start(){if(!Arena.ready())return;pk=[];hv=[];fl=[];tr=[];blocked=0;score=0;safeHit=0;missed=0;mx=null;
+ $("bl").textContent=0;$("sc").textContent=0;say("");t0=prevT=performance.now();tEnd=t0+TIME*1000;spawnAt=0;show("game");size()}
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function spawn(el){const n=1+(Math.random()<.2?1:0)+(el>25&&Math.random()<.2?1:0);
  for(let i=0;i<n;i++){const bad=Math.random()<.58,x=W*(.12+.76*Math.random()),g=H*1.2,h=H*(.45+.25*Math.random());
@@ -90,11 +91,11 @@ function card(label,a,isBad){cx.globalAlpha=a;rr(-60,-24,120,48,10);cx.fillStyle
  cx.fillStyle="#d6fff0";cx.font="bold 14px Courier New";cx.textAlign="center";cx.textBaseline="middle";cx.fillText(label,0,0);cx.globalAlpha=1}
 function segDist(ax,ay,bx,by,px,py){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(ax+t*dx-px,ay+t*dy-py)}
 function ft(x,y,txt,col){fl.push({x,y,txt,col,life:1})}
-function hud(){$("bl").textContent=blocked;$("lv").textContent=Math.max(0,lives)}
-function loseLife(why,x,y,txt){lives--;lastWhy=why;hud();flash();ft(x,y,txt,"#ff3860");if(lives<=0)lost(lastWhy+"<br>Blocked "+blocked+" of "+GOAL+" threats.<br><br><b>Tip:</b> slice only the RED threats and let GREEN safe traffic pass.")}
+function hud(){$("bl").textContent=blocked;$("sc").textContent=score}
+function penalty(pts,x,y,txt){score=Math.max(0,score+pts);hud();flash();ft(x,y,txt,"#ff3860")}
 function cut(p){p.cut=true;hv.push({x:p.x,y:p.y,vx:p.vx-120,vy:p.vy,g:p.g,rot:p.rot,vr:-2,s:0,t:p.t[0],life:1,bad:p.bad},{x:p.x,y:p.y,vx:p.vx+120,vy:p.vy,g:p.g,rot:p.rot,vr:2,s:1,t:p.t[0],life:1,bad:p.bad});
- if(p.bad){blocked++;hud();ft(p.x,p.y,"BLOCKED","#00ff9c");if(blocked>=GOAL)won(3-lives,3)}
- else loseLife("You sliced <b>"+p.t[0]+"</b>. "+p.t[1]+" Safe traffic must be allowed through.",p.x,p.y,"SAFE TRAFFIC! -1")}
+ if(p.bad){blocked++;score+=HIT;hud();ft(p.x,p.y,"BLOCKED +"+HIT,"#00ff9c")}
+ else{safeHit++;penalty(SAFE,p.x,p.y,"SAFE TRAFFIC! "+SAFE)}}
 function move(e){const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  if(mode==="game"&&mx!==null&&Math.hypot(x-mx,y-my)>3)pk.forEach(p=>{if(!p.cut&&segDist(mx*.43,my,x*.43,y,p.x*.43,p.y)<30&&mode==="game")cut(p)});
  tr.push({x,y,t:performance.now()});mx=x;my=y}
@@ -107,7 +108,7 @@ function loop(now){const dt=Math.min(.05,(now-prevT)/1000);prevT=now;
   for(let i=1;i<tr.length;i++){cx.strokeStyle="rgba(255,255,255,"+(1-(now-tr[i].t)/160)+")";cx.lineWidth=5;cx.beginPath();cx.moveTo(tr[i-1].x,tr[i-1].y);cx.lineTo(tr[i].x,tr[i].y);cx.stroke()}
   for(const p of pk){p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
    if(!p.cut){cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);card(p.t[0],1,p.bad);cx.restore()}
-   if(!p.cut&&p.y>H+60&&p.vy>0){p.cut=true;p.gone=true;if(p.bad)loseLife("A <b>"+p.t[0]+"</b> got through. "+p.t[1],Math.max(80,Math.min(W-80,p.x)),H-30,"BREACH! -1")}}
+   if(!p.cut&&p.y>H+60&&p.vy>0){p.cut=true;p.gone=true;if(p.bad){missed++;penalty(MISS,Math.max(80,Math.min(W-80,p.x)),H-30,"BREACH! "+MISS)}}}
   pk=pk.filter(p=>!(p.gone||(p.cut&&p.y>H+200)));
   for(const h of hv){h.vy+=h.g*dt;h.x+=h.vx*dt;h.y+=h.vy*dt;h.rot+=h.vr*dt;h.life-=dt*.9;
    cx.save();cx.translate(h.x,h.y);cx.rotate(h.rot);cx.beginPath();cx.rect(h.s?0:-62,-30,62,60);cx.clip();card(h.t,Math.max(0,h.life),h.bad);cx.restore()}
@@ -115,12 +116,12 @@ function loop(now){const dt=Math.min(.05,(now-prevT)/1000);prevT=now;
   for(const f of fl){f.y-=40*dt;f.life-=dt*1.2;cx.globalAlpha=Math.max(0,f.life);cx.fillStyle=f.col;cx.font="bold 18px Courier New";cx.textAlign="center";cx.fillText(f.txt,f.x,f.y);cx.globalAlpha=1}
   fl=fl.filter(f=>f.life>0)}
  requestAnimationFrame(loop)}
-function timeUp(){lost("Time ran out. You blocked "+blocked+" of "+GOAL+" threats."+(lastWhy?"<br>"+lastWhy:""))}
+function timeUp(){finish()}
 addEventListener("resize",()=>{if(mode==="game")size()});
-addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")location.href="../index.html"}});
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")Arena.goWheel()}});
 requestAnimationFrame(loop);
 Arena.mountForm();
-$("go").onclick=start;$("again").onclick=()=>{location.href="../index.html"};requestAnimationFrame(clock);
+$("go").onclick=start;$("again").onclick=()=>{Arena.goWheel()};requestAnimationFrame(clock);
 const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
 function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
 rs();addEventListener("resize",rs);

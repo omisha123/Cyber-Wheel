@@ -49,13 +49,13 @@ h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var
 </div>
 <section id="start" class="screen on">
   <div class="box">You have 16 encrypted visual nodes representing 8 systems.<br><br>
-  Find all matching pairs. You are allowed exactly <b>20 mistakes</b> and <b>60 seconds</b>.<br><br>
+  Find all matching pairs. You have exactly <b>24 moves</b> (one move = flipping two cards) and <b>60 seconds</b>. Fewer moves and more time left means a higher score.<br><br>
   Memory is your only weapon. Begin decryption.<br><br>Enter your <b>name</b> and <b>branch</b> below to appear on the leaderboard.</div>
   <button class="btn" id="go">START (Enter)</button>
 </section>
 
 <section id="game" class="screen">
-  <div class="hud"><span>MISTAKES LEFT <b id="at">20</b></span><span>TIME <b id="tm">60</b></span></div>
+  <div class="hud"><span>MOVES LEFT <b id="at">24</b></span><span>TIME <b id="tm">60</b></span></div>
   <div id="bar"><div id="fill"></div></div>
   <div id="grid"></div>
 </section>
@@ -65,7 +65,7 @@ h1{margin:6px 0 4px;font-size:clamp(22px,4vw,38px);letter-spacing:.2em;color:var
   <div class="big" id="fs">0</div>
   <div id="bad" style="display:none">
     <h2 style="color:var(--r);letter-spacing:.1em;margin:0">SYSTEM COMPROMISED</h2>
-    <div class="box" id="sol" style="text-align:center;">Too many errors or time expired.</div>
+    <div class="box" id="sol" style="text-align:center;">Out of moves or time expired.</div>
   </div>
   <button class="btn" id="again">NEXT PLAYER (Enter)</button>
 </section>
@@ -85,8 +85,8 @@ const PAIRS = [
   "https://api.dicebear.com/8.x/bottts/svg?seed=Data&baseColor=ffffff"
 ];
 
-const TIME = 60;
-let mode = "start", mistakes = 20, matches = 0, tEnd = 0;
+const TIME = 60, MOVES = 24, MIN_MOVES = 8;
+let mode = "start", moves = MOVES, matches = 0, tEnd = 0;
 let firstCard = null, secondCard = null, lock = false;
 
 const $ = id => document.getElementById(id);
@@ -118,7 +118,7 @@ function start() {
     grid.appendChild(c);
   });
 
-  mistakes = 20; $("at").textContent = mistakes;
+  moves = MOVES; $("at").textContent = moves;
   matches = 0; lock = false; firstCard = null; secondCard = null;
   tEnd = performance.now() + TIME * 1000;
   
@@ -137,6 +137,8 @@ function flip(c) {
   
   secondCard = c;
   lock = true;
+  moves--;                                   // every pair of flips costs one move
+  $("at").textContent = moves;
   
   if (firstCard.dataset.val === secondCard.dataset.val) {
     setTimeout(() => {
@@ -147,16 +149,17 @@ function flip(c) {
       
       if (matches === 8) {
         const left = Math.max(0, (tEnd - performance.now()) / 1000);
-        finish(Arena.calc("memory", left, TIME, 20 - mistakes, 20)); 
+        const used = MOVES - moves;           // 8 is the perfect run
+        finish(Arena.calc("memory", left, TIME, used - MIN_MOVES, MOVES - MIN_MOVES));
+      } else if (moves <= 0) {
+        finish(0);
       }
     }, 400); 
   } else {
-    mistakes--;
-    $("at").textContent = mistakes;
     const g = $("game");
     g.classList.remove("flash-r"); void g.offsetWidth; g.classList.add("flash-r");
     
-    if (mistakes <= 0) {
+    if (moves <= 0) {
       setTimeout(() => finish(0), 600);
       return;
     }
@@ -198,13 +201,13 @@ addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
     if (mode === "start") start();
-    else if (mode === "end") window.location.href = "../index.html";
+    else if (mode === "end") Arena.goWheel();
   }
 });
 
 Arena.mountForm();
 $("go").onclick = start;
-$("again").onclick = () => window.location.href = "../index.html";
+$("again").onclick = () => Arena.goWheel();
 requestAnimationFrame(tick);
 
 const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;

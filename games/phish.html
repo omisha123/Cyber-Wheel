@@ -91,9 +91,9 @@ function pick(i){if(mode!=="game"||locked||!cur.items[i])return;const b=$("grid"
   if(miss>=LIMIT)lost("Round "+round+": "+cur.why);else say("Not that one. "+(LIMIT-miss)+(miss===LIMIT-1?" mistake":" mistakes")+" left.")}}
 function timeUp(){lost(cur?"Round "+round+": "+cur.why:"")}
 $("grid").onclick=e=>{const b=e.target.closest(".item");if(b)pick(+b.dataset.i)};
-addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")location.href="../index.html"}else if(mode==="game"&&/^[1-9]$/.test(e.key)&&document.activeElement.tagName!=="INPUT")pick(+e.key-1)});
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="start")start();else if(mode==="end")Arena.goWheel()}else if(mode==="game"&&/^[1-9]$/.test(e.key)&&document.activeElement.tagName!=="INPUT")pick(+e.key-1)});
 Arena.mountForm();
-$("go").onclick=start;$("again").onclick=()=>{location.href="../index.html"};requestAnimationFrame(clock);
+$("go").onclick=start;$("again").onclick=()=>{Arena.goWheel()};requestAnimationFrame(clock);
 const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
 function rs(){rc.width=innerWidth;rc.height=innerHeight;cols=Math.floor(rc.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*50)}
 rs();addEventListener("resize",rs);

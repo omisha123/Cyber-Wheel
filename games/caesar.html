@@ -146,9 +146,9 @@ function tick(now){
  }
  requestAnimationFrame(tick)
 }
-addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="game")submit();else if(mode==="start")start();else window.location.href="../index.html";}});
+addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();if(mode==="game")submit();else if(mode==="start")start();else Arena.goWheel();}});
 Arena.mountForm();
-$("go").onclick=start;$("again").onclick=()=>window.location.href="../index.html";$("sub").onclick=submit;
+$("go").onclick=start;$("again").onclick=()=>Arena.goWheel();$("sub").onclick=submit;
 requestAnimationFrame(tick);
 
 const rc=$("rain"),rx=rc.getContext("2d");let cols,drops;
