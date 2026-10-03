@@ -70,12 +70,12 @@ canvas#w{width:100%;height:100%;display:block;filter:drop-shadow(0 0 25px #00ff9
 <script>
 // ====== EDIT ME: put your real game links here ======
 const GAMES=[
- {name:"CAESAR CRACKER",desc:"Decrypt the scrambled message before time runs out.",url:"games/caesar.html",color:"#00cfff"},
- {name:"DOMAIN DETECTIVE",desc:"Spot the fake website address, 5 rounds, 60 seconds.",url:"games/domain.html",color:"#ffe600"},
- {name:"CYBER MEMORY MATCH",desc:"Flip cards, match security icons, beat the clock.",url:"games/memory.html",color:"#ff2bd6"},
- {name:"PACKET NINJA",desc:"Slice the threats, let the safe traffic pass.",url:"games/packet.html",color:"#ff3860"},
- {name:"TWO TRUTHS ONE PHISH",desc:"Two messages are real. One is a phishing attempt.",url:"games/phish.html",color:"#00ff9c"},
- {name:"PASSWORD DUEL",desc:"Build passwords that survive three cracking attacks.",url:"games/password.html",color:"#ff6b1a"}
+ {name:"CAESAR CRACKER",desc:"Decrypt the scrambled message before time runs out.",url:"https://cybergames-navy.vercel.app/games/caesar.html",color:"#00cfff"},
+ {name:"DOMAIN DETECTIVE",desc:"Spot the fake website address, 5 rounds, 60 seconds.",url:"https://cybergames-navy.vercel.app/games/domain.html",color:"#ffe600"},
+ {name:"CYBER MEMORY MATCH",desc:"Flip cards, match security icons, beat the clock.",url:"https://cybergames-navy.vercel.app/games/memory.html",color:"#ff2bd6"},
+ {name:"PACKET NINJA",desc:"Slice the threats, let the safe traffic pass.",url:"https://cybergames-navy.vercel.app/games/packet.html",color:"#ff3860"},
+ {name:"TWO TRUTHS ONE PHISH",desc:"Two messages are real. One is a phishing attempt.",url:"https://cybergames-navy.vercel.app/games/phish.html",color:"#00ff9c"},
+ {name:"PASSWORD DUEL",desc:"Build passwords that survive three cracking attacks.",url:"https://cybergames-navy.vercel.app/games/password.html",color:"#ff6b1a"}
 ];
 const cv=document.getElementById("w"),cx=cv.getContext("2d"),N=GAMES.length,STEP=Math.PI*2/N;
 let S=600,rot=0,spinning=false,win=-1,exp=0,lastTick=-1;
